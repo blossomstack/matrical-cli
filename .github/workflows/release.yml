@@ -38,18 +38,23 @@ jobs:
 
   build:
     name: Build (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
+    # Both macOS builds run on the Apple silicon runner; the SDK covers both.
+    runs-on: ${{ endsWith(matrix.target, 'apple-darwin') && 'macos-latest' || startsWith(matrix.target, 'aarch64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Linux builds are static (musl), so one binary runs on any
-          # distribution, Alpine included, with no system libraries.
-          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
-          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
-          - { target: aarch64-apple-darwin, os: macos-latest }
-          # Cross-compiled from the Apple silicon runner; the SDK covers both.
-          - { target: x86_64-apple-darwin, os: macos-latest }
+        # Linux builds are static (musl), so one binary runs on any
+        # distribution, Alpine included, with no system libraries.
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+        # macOS runners only build releases, never pull requests. `include`
+        # entries cannot be excluded, hence a plain list.
+        exclude:
+          - target: ${{ github.event_name == 'pull_request' && 'aarch64-apple-darwin' || 'none' }}
+          - target: ${{ github.event_name == 'pull_request' && 'x86_64-apple-darwin' || 'none' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
