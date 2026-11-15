@@ -315,10 +315,6 @@ pub struct NewContent {
     /// MOV or WebM a video item plays. Required for those, refused otherwise.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub recording: Option<String>,
-    /// Who to credit, such as the agent writing it. Left out, the CLI
-    /// token's name, or the person's email in a browser or the app.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub author: Option<String>,
     /// The folder to put it in, as in `research/2026`, made if missing. Left
     /// out, the top of the space. When an item by its name is already there,
     /// that item gets the new text instead, as an edit with no version would.
@@ -495,13 +491,19 @@ pub struct SpaceMember {
     pub role: String,
 }
 
-/// A space to make. A missing name is taken from the slug.
+/// A space to make.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, derive_new::new)]
 #[serde(rename_all = "camelCase")]
 pub struct NewSpace {
-    pub slug: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    pub name: String,
+}
+
+/// A space's new name. Only its owner may change it, and never from a CLI
+/// login or an AI app.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, derive_new::new)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceEdit {
+    pub name: String,
 }
 
 /// A space the caller can reach.
@@ -510,9 +512,8 @@ pub struct NewSpace {
 pub struct SpaceSummary {
     /// What every request names it by. It never changes.
     pub id: String,
-    /// A short name, unique among its owner's spaces. Only for showing and
-    /// for finding a space by name; requests use `id`.
-    pub slug: String,
+    /// Unique among its owner's spaces, ignoring case. Its owner can change
+    /// it, so keep the id to find it again.
     pub name: String,
     /// reader, writer or owner.
     pub role: String,

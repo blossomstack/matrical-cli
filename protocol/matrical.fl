@@ -258,9 +258,6 @@ struct NewContent {
     /// The sha256 of the uploaded MP3 or M4A an audio item plays, or the MP4,
     /// MOV or WebM a video item plays. Required for those, refused otherwise.
     recording: Option<String>,
-    /// Who to credit, such as the agent writing it. Left out, the CLI
-    /// token's name, or the person's email in a browser or the app.
-    author: Option<String>,
     /// The folder to put it in, as in `research/2026`, made if missing. Left
     /// out, the top of the space. When an item by its name is already there,
     /// that item gets the new text instead, as an edit with no version would.
@@ -396,19 +393,23 @@ struct SpaceMember {
     role: String,
 }
 
-/// A space to make. A missing name is taken from the slug.
+/// A space to make.
 struct NewSpace {
-    slug: String,
-    name: Option<String>,
+    name: String,
+}
+
+/// A space's new name. Only its owner may change it, and never from a CLI
+/// login or an AI app.
+struct SpaceEdit {
+    name: String,
 }
 
 /// A space the caller can reach.
 struct SpaceSummary {
     /// What every request names it by. It never changes.
     id: String,
-    /// A short name, unique among its owner's spaces. Only for showing and
-    /// for finding a space by name; requests use `id`.
-    slug: String,
+    /// Unique among its owner's spaces, ignoring case. Its owner can change
+    /// it, so keep the id to find it again.
     name: String,
     /// reader, writer or owner.
     role: String,

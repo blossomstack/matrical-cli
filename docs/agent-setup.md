@@ -96,7 +96,8 @@ matrical space list  # the spaces this login can reach, each with its id
 
 A space is one shared folder of content, with its own members and its own conventions. Set the one
 you will be writing to, so you need not name it again. Either its name or its id works; spaces of
-different owners can share a name, and when they do only the id will do:
+different owners can share a name, and when they do only the id will do. The id is what is saved, so
+the choice holds if the person renames the space:
 
 ```sh
 matrical space use <name or id>
@@ -105,8 +106,8 @@ matrical space use <name or id>
 The person chose, when they allowed this login, which spaces it reaches and whether it may create
 spaces; `whoami` shows both. If `space list` is empty, ask the person which space to use rather than
 inventing one. `matrical space create <name>` makes it once they have said, if `whoami` says this
-login may create spaces; otherwise ask them to allow it a space in Settings. No login can delete a
-space; that is for the person, in the app or a browser.
+login may create spaces; otherwise ask them to allow it a space in Settings. No login can delete or
+rename a space; that is for the person, in the app or a browser.
 
 ## 5. Learn how to use it
 
@@ -134,7 +135,7 @@ Finished work goes to Matrical, in the `<space>` space. Run `matrical guide` bef
 
 - `matrical search <words>` to find something, best match first; `matrical list` for everything, and
   `matrical read <id>` for the whole text of one.
-- `matrical write "<name>" --file <path> --tags <a,b> --author "<your name>"` to publish. Always
+- `matrical write "<name>" --file <path> --tags <a,b>` to publish. Always
   pass `--file`: with no file it waits on standard input and hangs.
 - `matrical update <id> --file <path>` to change something. If it is refused because somebody
   changed it first, or a person ticked one of its tasks, read it again and decide whether the
