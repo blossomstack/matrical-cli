@@ -234,10 +234,6 @@ enum Command {
         /// the text shows is used, and failing that its tile is just words.
         #[arg(long)]
         cover: Option<PathBuf>,
-        /// Who to credit, such as the agent writing it. Without it, the name
-        /// this login has in Settings.
-        #[arg(long)]
-        author: Option<String>,
     },
     /// Change something already published.
     ///
@@ -370,19 +366,21 @@ enum SpaceCommand {
     /// List your spaces, each with its id.
     List,
     /// Create a space, and print its id.
+    ///
+    /// Each of your spaces has its own name. Its owner can rename it later,
+    /// in the app or a browser; its id never changes.
     Create {
-        /// A short name: lowercase letters, numbers and dashes.
-        slug: String,
-        /// What people see. Defaults to the short name.
-        #[arg(long)]
-        name: Option<String>,
+        /// What people call it, up to 80 characters.
+        name: String,
     },
     /// Show who can reach the space, and what they may do.
     Members,
     /// Set the space later commands use.
+    ///
+    /// Its id is saved, so the choice holds if the space is renamed.
     Use {
-        /// The space's short name or its id. Spaces of different owners can
-        /// share a name; pass the id when they do.
+        /// The space's name, in any case, or its id. Spaces of different
+        /// owners can share a name; pass the id when they do.
         space: String,
     },
 }
@@ -409,7 +407,7 @@ async fn resolve(client: &mut Client, wanted: &str) -> Result<String, String> {
     pick(&spaces, wanted)
 }
 
-/// An id is 32 lowercase hex characters; a short name never is.
+/// An id is 32 lowercase hex characters.
 fn is_space_id(wanted: &str) -> bool {
     wanted.len() == 32
         && wanted
@@ -418,7 +416,10 @@ fn is_space_id(wanted: &str) -> bool {
 }
 
 fn pick(spaces: &[SpaceSummary], wanted: &str) -> Result<String, String> {
-    let found: Vec<&SpaceSummary> = spaces.iter().filter(|s| s.slug == wanted).collect();
+    let found: Vec<&SpaceSummary> = spaces
+        .iter()
+        .filter(|s| s.name.to_lowercase() == wanted.to_lowercase())
+        .collect();
     match found.as_slice() {
         [one] => Ok(one.id.clone()),
         [] => Err(format!(
@@ -640,18 +641,18 @@ async fn space_command(
                 println!("{}", pretty(&spaces)?);
             } else {
                 for one in &spaces {
-                    println!("{}  {}  {}  ({})", one.id, one.slug, one.name, one.role);
+                    println!("{}  {}  ({})", one.id, one.name, one.role);
                 }
             }
         }
-        SpaceCommand::Create { slug, name } => {
-            let body = NewSpace { slug, name };
+        SpaceCommand::Create { name } => {
+            let body = NewSpace { name };
             let url = client.url(&["api", "spaces"])?;
             let made: SpaceSummary = client.fetch(Method::POST, url, |r| r.json(&body)).await?;
             if json_out {
                 println!("{}", pretty(&made)?);
             } else {
-                println!("Created {} as {}.", made.slug, made.id);
+                println!("Created {} as {}.", made.name, made.id);
             }
         }
         SpaceCommand::Members => {
@@ -851,7 +852,6 @@ async fn run(cli: Cli) -> Result<(), String> {
             file,
             tags,
             cover,
-            author,
             audio,
             video,
         } => {
@@ -891,7 +891,6 @@ async fn run(cli: Cli) -> Result<(), String> {
                 media,
                 cover,
                 recording,
-                author,
                 folder: (!folder.is_empty()).then_some(folder),
             };
             let url = client.url(&["api", "spaces", &space_id, "content"])?;
@@ -1263,11 +1262,10 @@ mod tests {
         assert!(describe(&me).contains("Reaches: all of the person's spaces"));
     }
 
-    fn summary(id: &str, slug: &str) -> SpaceSummary {
+    fn summary(id: &str, name: &str) -> SpaceSummary {
         SpaceSummary {
             id: id.to_owned(),
-            slug: slug.to_owned(),
-            name: slug.to_owned(),
+            name: name.to_owned(),
             ..Default::default()
         }
     }
@@ -1285,11 +1283,11 @@ mod tests {
         let a = "a".repeat(32);
         let b = "b".repeat(32);
         let spaces = [
-            summary(&a, "team"),
+            summary(&a, "Team"),
             summary(&b, "team"),
-            summary(&b, "solo"),
+            summary(&b, "Field notes"),
         ];
-        assert_eq!(pick(&spaces, "solo"), Ok(b.clone()));
+        assert_eq!(pick(&spaces, "field NOTES"), Ok(b.clone()));
         assert!(pick(&spaces, "nobody")
             .unwrap_err()
             .contains("no space named"));

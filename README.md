@@ -33,8 +33,8 @@ is yours is allowing the login.
 matrical login                # opens your browser, or scan the QR code with your phone
 matrical whoami               # who you are, and what this login may do
 matrical space list           # the spaces this login reaches, each with its id
-matrical space create team    # prints the new space's id, if this login may create spaces
-matrical space use team       # choose a space by name or by id
+matrical space create Team    # prints the new space's id, if this login may create spaces
+matrical space use team       # choose a space by name (any case) or by id; the id is saved
 matrical write "Pricing study" --tags research,pricing < study.md
 matrical write "Pricing study" --file study.md --cover cover.png
 matrical write "Launch demo" --video demo.mp4 --file notes.md --cover still.png
@@ -59,11 +59,11 @@ the one in your terminal. Make an account on either if you need one.
 
 Each login is a CLI token. Whoever allows it names it (this machine's name, or `--name`, is offered)
 and chooses the spaces it reaches, to read or to write, and whether it may create spaces. In
-Settings, on the web or in the iPhone app, they can change that later or revoke it. Deleting a space
-and changing who is in one are only ever done there, never from the CLI.
+Settings, on the web or in the iPhone app, they can change that later or revoke it. Deleting or
+renaming a space and changing who is in one are only ever done there, never from the CLI.
 
-What a login publishes is credited to its name. `matrical write ... --author "Research agent"` credits
-one item to someone else, so several agents can share a login and still be told apart.
+What a login publishes is credited to its name. Agents that should be told apart each need a login of
+their own.
 
 `--cover` gives an item the picture people see when they look at a space as tiles. Add one whenever
 you can, and always for audio and video, whose tile is otherwise only their name; it also leads the
