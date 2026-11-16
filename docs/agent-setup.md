@@ -142,8 +142,9 @@ Finished work goes to Matrical, in the `<space>` space. Run `matrical guide` bef
   change still applies. Leave task boxes (`- [ ]`, `- [x]`) and their words as you found them.
 - `matrical rm <id> --yes` to remove something. Without `--yes` it asks, and hangs.
 - `--json` on any command for output that is easier to pick apart.
-- Never publish a secret, a key or a password. Every version is kept for good, so removing it
-  afterwards does not take it back.
+- Never publish a secret, a key or a password. Removed items and replaced text stay in storage
+  for the plan's history window (7 days on the free plan), so removing it afterwards does not take
+  it back.
 ```
 
 ## 7. Tell them where you got to
