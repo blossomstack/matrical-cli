@@ -8,7 +8,7 @@ mod tree;
 
 use clap::{Parser, Subcommand};
 use matrical_protocol::{
-    ContentDoc, ContentEdit, ContentItem, Folder, FolderEdit, FolderEntry, FolderPage,
+    ContentDoc, ContentEdit, ContentItem, ContentPage, Folder, FolderEdit, FolderEntry, FolderPage,
     HistoryEntry, Listing, Me, MediaRef, NewContent, NewFolder, NewSpace, SearchResults,
     SpaceMember, SpaceSummary, UploadFile, UploadLinks, UploadRequest, Usage,
 };
@@ -162,6 +162,11 @@ enum Command {
         /// Show only what carries this tag.
         #[arg(long)]
         tag: Option<String>,
+        /// Show only drafts in this review state instead: `draft` (waiting for
+        /// a person), `changes` (a person asked for changes; `read` shows what
+        /// they said) or `approved`. Drafts are left out of the list otherwise.
+        #[arg(long, value_parser = ["draft", "changes", "approved"])]
+        review: Option<String>,
     },
     /// Find content by what it says, best first, with the passage that matched.
     ///
@@ -179,8 +184,9 @@ enum Command {
     },
     /// Print one piece of content.
     ///
-    /// Prints the text as it was published. --json gives its name, tags, media
-    /// and version as well.
+    /// Prints the text as it was published. A draft's review state, and what
+    /// the person said with their latest decision, go first on standard error.
+    /// --json gives its name, tags, media, review and version as well.
     Read {
         /// The id that `list` shows, or the item's path.
         id: String,
@@ -233,6 +239,12 @@ enum Command {
         /// the text shows is used, and failing that its tile is just words.
         #[arg(long)]
         cover: Option<PathBuf>,
+        /// Publish it as a draft for a person to approve or send back with a
+        /// comment. It stays out of the list until approved. Don't wait for the
+        /// decision: check it when you next run, with `read` or
+        /// `list --review changes`, and update the draft to revise it.
+        #[arg(long)]
+        draft: bool,
     },
     /// Change something already published.
     ///
@@ -498,6 +510,27 @@ fn refused_write(path: &str, refused: client::Refused) -> String {
         ),
         _ => refused.message,
     }
+}
+
+/// A draft's review state in a few words, with what the person last said.
+fn review_line(item: &ContentItem) -> String {
+    let Some(review) = &item.review else {
+        return "not a draft".to_owned();
+    };
+    let state = match review.state.as_str() {
+        "draft" => "waiting for review",
+        "changes" => "changes asked",
+        "approved" => "approved",
+        other => other,
+    };
+    let mut line = state.to_owned();
+    if !review.by.is_empty() {
+        line.push_str(&format!(" by {}", review.by));
+    }
+    if !review.comment.is_empty() {
+        line.push_str(&format!(": {}", review.comment));
+    }
+    line
 }
 
 fn pretty<T: Serialize>(value: &T) -> Result<String, String> {
@@ -780,7 +813,43 @@ async fn run(cli: Cli) -> Result<(), String> {
             let res = client.send(Method::GET, url, |r| r).await?;
             print!("{}", res.text().await.map_err(|e| e.to_string())?);
         }
-        Command::List { tag } => {
+        Command::List {
+            tag,
+            review: Some(review),
+        } => {
+            let space_id = space(&cli.space, &mut client).await?;
+            let url = client.url(&["api", "spaces", &space_id, "contents"])?;
+            let mut items = Vec::new();
+            let mut before: Option<u64> = None;
+            loop {
+                let mut query = vec![("review", review.clone()), ("limit", "500".to_owned())];
+                if let Some(tag) = &tag {
+                    query.push(("tag", tag.clone()));
+                }
+                if let Some(before) = before {
+                    query.push(("before", before.to_string()));
+                }
+                let page: ContentPage = client
+                    .fetch(Method::GET, url.clone(), |r| r.query(&query))
+                    .await?;
+                items.extend(page.items);
+                match page.next {
+                    Some(next) => before = Some(next),
+                    None => break,
+                }
+            }
+            if json_out {
+                println!("{}", pretty(&items)?);
+            } else {
+                if items.is_empty() {
+                    eprintln!("No drafts are in that state.");
+                }
+                for item in &items {
+                    println!("{}  {}: {}", item.id, item.name, review_line(item));
+                }
+            }
+        }
+        Command::List { tag, review: None } => {
             let space_id = space(&cli.space, &mut client).await?;
             let mut listing: Listing = client.get(&["api", "spaces", &space_id, "index"]).await?;
             if let Some(tag) = &tag {
@@ -843,6 +912,9 @@ async fn run(cli: Cli) -> Result<(), String> {
             if json_out {
                 println!("{}", pretty(&doc)?);
             } else {
+                if doc.item.review.is_some() {
+                    eprintln!("Review: {}", review_line(&doc.item));
+                }
                 print!("{}", doc.text);
             }
         }
@@ -853,6 +925,7 @@ async fn run(cli: Cli) -> Result<(), String> {
             cover,
             audio,
             video,
+            draft,
         } => {
             let space_id = space(&cli.space, &mut client).await?;
             let path = name;
@@ -891,6 +964,7 @@ async fn run(cli: Cli) -> Result<(), String> {
                 cover,
                 recording,
                 folder: (!folder.is_empty()).then_some(folder),
+                draft: draft.then_some(true),
             };
             let url = client.url(&["api", "spaces", &space_id, "content"])?;
             let made: ContentItem = client
@@ -1212,9 +1286,30 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{describe, describe_usage, human_bytes, is_space_id, pick, Cli, DEFAULT_SERVER};
+
+    #[test]
+    fn a_review_reads_as_its_state_and_what_was_said() {
+        use matrical_protocol::Review;
+        let mut item = ContentItem::default();
+        assert_eq!(review_line(&item), "not a draft");
+        item.review = Some(Review {
+            state: "draft".into(),
+            ..Default::default()
+        });
+        assert_eq!(review_line(&item), "waiting for review");
+        item.review = Some(Review {
+            state: "changes".into(),
+            comment: "Use EU prices".into(),
+            by: "Ann".into(),
+            at_ms: 1,
+        });
+        assert_eq!(review_line(&item), "changes asked by Ann: Use EU prices");
+    }
+    use super::{
+        describe, describe_usage, human_bytes, is_space_id, pick, review_line, Cli, DEFAULT_SERVER,
+    };
     use clap::CommandFactory;
-    use matrical_protocol::{CliToken, Me, SpaceSummary, TokenSpace, Usage};
+    use matrical_protocol::{CliToken, ContentItem, Me, SpaceSummary, TokenSpace, Usage};
 
     #[test]
     fn usage_reads_as_people_say_it() {

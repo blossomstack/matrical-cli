@@ -27,6 +27,7 @@ fn keys_go_out_as_camel_case() {
         minor_version: 0,
         tasks: None,
         folder: None,
+        review: None,
     };
     let json = serde_json::to_string(&item).unwrap();
     for key in ["fileType", "createdMs", "updatedMs", "mediaType"] {
