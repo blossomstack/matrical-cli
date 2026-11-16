@@ -165,8 +165,7 @@ enum Command {
     },
     /// Find content by what it says, best first, with the passage that matched.
     ///
-    /// Where search by meaning is on, it also finds content that says the
-    /// same thing in other words.
+    /// It also finds content that says the same thing in other words.
     Search {
         /// The words to look for.
         #[arg(required = true, num_args = 1..)]
@@ -276,8 +275,8 @@ enum Command {
     },
     /// Remove one piece of content.
     ///
-    /// It goes from the list, but it is not erased: every version of everything
-    /// published is kept for good. Without --yes it asks on the terminal first,
+    /// It goes from the list, but it is not erased at once: it stays in storage
+    /// for the plan's history window. Without --yes it asks on the terminal first,
     /// so an unattended run has to pass --yes.
     Rm {
         /// The id that `list` shows, or the item's path.
