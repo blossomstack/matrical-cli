@@ -53,6 +53,44 @@ pub struct ContentItem {
     /// The id of the folder it is in. None at the top of the space.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    /// Where a person's review of it stands. None for an item published
+    /// without asking for one, which is most of them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review: Option<crate::matrical::v1::Review>,
+}
+
+/// A person's review of an item an agent published as a draft. Until it is
+/// approved the item is left out of lists, folders, search and pushes, but
+/// reading it by its id always works.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, derive_new::new)]
+#[serde(rename_all = "camelCase")]
+pub struct Review {
+    /// draft: waiting for a person. changes: a person asked for changes,
+    /// said in `comment`; an update to its text or recording makes it a draft
+    /// again. approved: final, and it is shown like any other item.
+    pub state: String,
+    /// What the person said with their latest decision. Kept when a draft
+    /// goes back for review; empty for a new draft and maybe for an approval.
+    pub comment: String,
+    /// Who made the latest decision. Empty for a new draft.
+    pub by: String,
+    /// When the item was last published, revised or decided on.
+    pub at_ms: u64,
+}
+
+/// A person's decision on a draft
+/// (`POST /api/spaces/{space}/content/{id}/review`). Only people make one, in
+/// the app or a browser, never a CLI login or an AI app.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, derive_new::new)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewDecision {
+    /// approve or changes.
+    pub decision: String,
+    /// What should change. Needed to ask for changes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+    /// The version the person looked at. Refused if it has moved.
+    pub version: u64,
 }
 
 /// A folder in a space. Its name is unique in its parent, among folders and
@@ -320,6 +358,11 @@ pub struct NewContent {
     /// that item gets the new text instead, as an edit with no version would.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    /// Hold it back until a person approves it: it starts in review as a
+    /// draft. Ignored when it replaces an item already there, which keeps
+    /// its own review.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft: Option<bool>,
 }
 
 /// Fields to change. Anything left out keeps the value it has.
@@ -405,6 +448,18 @@ pub struct AppSignIn {
     /// Apple gives the person's name to the app only, and only the first time.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+}
+
+/// Where the iPhone app is told of new content (`PUT /api/push-device`), for
+/// the login calling; `DELETE /api/push-device` stops it. Each push carries
+/// `space` (a space id) and `item` (a content id) beside `aps`.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize, derive_new::new)]
+#[serde(rename_all = "camelCase")]
+pub struct PushDevice {
+    /// The APNs device token, in hex.
+    pub token: String,
+    /// sandbox or production: which APNs the build is signed for.
+    pub environment: String,
 }
 
 /// Allows or denies a login a terminal started, by the code it shows. Only
@@ -574,7 +629,7 @@ pub struct Usage {
     /// free or paid.
     pub plan: String,
     /// Writes this calendar month, UTC: new items and new text. Renames,
-    /// moves, folders, tags, covers and removals are free.
+    /// moves, folders, tags, covers, reviews and removals are free.
     pub writes: u64,
     pub writes_limit: u64,
     /// Bytes stored, including files nothing uses any more until they have
