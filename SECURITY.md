@@ -1,6 +1,6 @@
 # Security
 
-Report a flaw privately through [GitHub's private vulnerability reporting](https://github.com/blossomstack/matrical-cli/security/advisories/new), not in a public issue. Say what you found and how to reproduce it.
+Report a flaw in the CLI or the Matrical service privately, not in a public issue: through [GitHub's private vulnerability reporting](https://github.com/blossomstack/matrical-cli/security/advisories/new), or by email to support@matrical.app. Say what you found and how to reproduce it. A person will reply.
 
 Only the latest release is supported.
 
