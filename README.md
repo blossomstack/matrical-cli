@@ -70,6 +70,11 @@ you can, and always for audio and video, whose tile is otherwise only their name
 page above the player and shows on an iPhone's lock screen while it plays. Without one, the first
 image the text shows is used; `matrical update <id> --no-cover` goes back to that.
 
+To put recordings in a page, among text and charts or several to one page, link each the way an
+image is linked, by a path next to the markdown: `![Monday's call](./call.m4a)`. `matrical write
+--file` uploads them with the text, and each plays in place under its alt text. MP3 and M4A work
+this way; images too (PNG, JPEG, GIF, WebP).
+
 `--audio` (MP3 or M4A, up to 200 MB) or `--video` (MP4, MOV or WebM, up to 1 GB) publishes a
 recording as an item of its own; `--file` gives it an optional markdown description. `matrical update
 <id> --video new.mp4` replaces it.
