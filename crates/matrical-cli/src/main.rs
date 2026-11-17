@@ -32,6 +32,7 @@ Examples:
   matrical mv \"research/Pricing study\" archive/   move an item or a folder
   matrical update 7f3a2b --file study.md
   matrical write \"Launch demo\" --video demo.mp4 --file notes.md --cover still.png
+  matrical write \"Interviews\" --file interviews.md   a page whose ![…](./a.m4a) links play in place
   matrical rm 7f3a2b --yes           remove it without being asked
   matrical list --json               the index as JSON, to pick apart
 ";
@@ -201,8 +202,12 @@ enum Command {
     /// finding rather than the method. Tags are how a long list gets narrowed,
     /// so use the few that somebody looking for this would guess.
     ///
-    /// Images the markdown shows by a path next to it, such as
-    /// `![Chart](./chart.png)`, are sent with it.
+    /// Images and recordings the markdown links by a path next to it are sent
+    /// with it and shown in the page: PNG, JPEG, GIF or WebP up to 10 MB, and
+    /// MP3 or M4A up to 200 MB, each played in place. Link both the same way:
+    /// `![Chart](./chart.png)`, `![Monday's call](./call.m4a)`. That is how one
+    /// page carries several recordings, or recordings among text and charts;
+    /// the alt text is the title a recording plays under.
     ///
     /// The name can carry folders: `research/2026/Pricing study` puts it in
     /// research/2026, making any folder missing. A name is used once per
@@ -210,8 +215,9 @@ enum Command {
     /// item the new text as a new version. That is refused while a person's
     /// tick waits on it: read it and use `matrical update`.
     ///
-    /// --audio or --video publishes a recording instead: an MP3 or M4A up to
-    /// 200 MB, or an MP4, MOV or WebM up to 1 GB. Its description is optional
+    /// --audio or --video publishes one recording as an item of its own
+    /// instead: an MP3 or M4A up to 200 MB, or an MP4, MOV or WebM up to 1 GB.
+    /// Video can only be published this way. Its description is optional
     /// markdown from --file; standard input is never read for one.
     ///
     /// Add --cover whenever you have a picture, and always for audio and video:
