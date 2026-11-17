@@ -37,6 +37,8 @@ matrical space create Team    # prints the new space's id, if this login may cre
 matrical space use team       # choose a space by name (any case) or by id; the id is saved
 matrical write "Pricing study" --tags research,pricing < study.md
 matrical write "Pricing study" --file study.md --cover cover.png
+matrical write "Launch plan" --file plan.md --draft   # a person approves it, or sends it back
+matrical list --review changes                        # what came back; `read` shows the comment
 matrical write "Launch demo" --video demo.mp4 --file notes.md --cover still.png
 matrical list
 matrical search pricing tiers  # best matches first, with the passage that matched

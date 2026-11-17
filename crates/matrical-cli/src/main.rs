@@ -31,6 +31,8 @@ Examples:
   matrical tree --depth 2 --limit 20 how the space is filed, kept short
   matrical mv \"research/Pricing study\" archive/   move an item or a folder
   matrical update 7f3a2b --file study.md
+  matrical write \"Launch plan\" --file plan.md --draft   for a person to approve first
+  matrical list --review changes     drafts a person sent back; read one for their comment
   matrical write \"Launch demo\" --video demo.mp4 --file notes.md --cover still.png
   matrical write \"Interviews\" --file interviews.md   a page whose ![…](./a.m4a) links play in place
   matrical rm 7f3a2b --yes           remove it without being asked
@@ -165,7 +167,8 @@ enum Command {
         tag: Option<String>,
         /// Show only drafts in this review state instead: `draft` (waiting for
         /// a person), `changes` (a person asked for changes; `read` shows what
-        /// they said) or `approved`. Drafts are left out of the list otherwise.
+        /// they said) or `approved`. Without it, drafts are listed with
+        /// everything else, marked [draft] or [changes asked].
         #[arg(long, value_parser = ["draft", "changes", "approved"])]
         review: Option<String>,
     },
@@ -246,7 +249,7 @@ enum Command {
         #[arg(long)]
         cover: Option<PathBuf>,
         /// Publish it as a draft for a person to approve or send back with a
-        /// comment. It stays out of the list until approved. Don't wait for the
+        /// comment. It is listed marked [draft] until they decide. Don't wait for the
         /// decision: check it when you next run, with `read` or
         /// `list --review changes`, and update the draft to revise it.
         #[arg(long)]
@@ -866,10 +869,15 @@ async fn run(cli: Cli) -> Result<(), String> {
             } else {
                 let tree = Tree::new(&listing);
                 for item in &listing.items {
-                    let kind = match item.file_type.as_str() {
+                    let mut kind = match item.file_type.as_str() {
                         "audio" | "video" => format!("[{}] ", item.file_type),
                         _ => String::new(),
                     };
+                    match item.review.as_ref().map(|review| review.state.as_str()) {
+                        Some("draft") => kind.insert_str(0, "[draft] "),
+                        Some("changes") => kind.insert_str(0, "[changes asked] "),
+                        _ => {}
+                    }
                     let path = tree.item_path(item);
                     println!("{}  {kind}{path}: {}", item.id, item.summary);
                 }

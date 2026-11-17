@@ -136,7 +136,12 @@ Finished work goes to Matrical, in the `<space>` space. Run `matrical guide` bef
 - `matrical search <words>` to find something, best match first; `matrical list` for everything, and
   `matrical read <id>` for the whole text of one.
 - `matrical write "<name>" --file <path> --tags <a,b>` to publish. Always
-  pass `--file`: with no file it waits on standard input and hangs.
+  pass `--file`: with no file it waits on standard input and hangs. Pictures and recordings
+  (MP3, M4A) linked next to the file, like `![Monday's call](./call.m4a)`, go up with it and show in
+  the page.
+- When the person should approve something first, add `--draft`. They approve it or send it back
+  with a comment. Don't wait for it: when you next run, `matrical list --review changes` shows
+  what came back (`matrical read <id>` gives their comment); revise with `matrical update`.
 - `matrical update <id> --file <path>` to change something. If it is refused because somebody
   changed it first, or a person ticked one of its tasks, read it again and decide whether the
   change still applies. Leave task boxes (`- [ ]`, `- [x]`) and their words as you found them.
